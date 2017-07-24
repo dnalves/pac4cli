@@ -5,7 +5,12 @@ PYTHON ?= "$(shell which python3 )"
 TESTPORT ?= 23128
 
 prefix = /usr/local
-bindir := $(prefix)/bin
+ifeq ($(OS), Linux)
+	bindir := $(prefix)/bin
+else
+	bindir := $(prefix)/libexec
+endif
+
 libdir := $(prefix)/lib
 pythonsitedir = "$(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())" )"
 
@@ -32,6 +37,7 @@ check: env
 	./testrun.sh $(TESTPORT)
 
 check-prev-proxies:
+ifeq ($(OS),Linux)
 	@RESULT=$$(grep -r --color -E '(http_proxy=)|(HTTP_PROXY=)|(https_proxy=)|(HTTPS_PROXY=)' $(DESTDIR)/etc/profile.d | cut -d' ' -f1 | sort | uniq) && \
 	if [[ "x$$RESULT" != "x" ]];then \
 		echo "Found these scripts setting the enviroment variables http_proxy & HTTP_PROXY:" && \
@@ -43,8 +49,10 @@ check-prev-proxies:
 		echo "You have to either remove those definitions, or set them manually to 'localhost:3128'." && \
 		echo "Otherwise, pac4cli may fail to work properly."; \
 	fi
+endif
 
 install-service: check-prev-proxies
+ifeq ($(OS),Linux)
 	install -D -m 644 pac4cli.service $(DESTDIR)$(libdir)/systemd/system/pac4cli.service
 	
 	@sed -i -e 's@/usr/local/bin@'"$(bindir)"'@g' $(DESTDIR)$(libdir)/systemd/system/pac4cli.service
@@ -52,6 +60,10 @@ install-service: check-prev-proxies
 	install -D -m 755 trigger-pac4cli $(DESTDIR)/etc/NetworkManager/dispatcher.d/trigger-pac4cli
 	install -D -m 755 pac4cli.sh $(DESTDIR)/etc/profile.d/pac4cli-proxy.sh
 	install -D -m 644 pac4cli.config $(DESTDIR)/etc/pac4cli/pac4cli.config
+else
+	install -D -m 755 launchd/pac4cli.plist $(DESTDIR)/Library/LaunchDaemons/pac4cli.plist
+	install -D -m 644 pac4cli.config $(DESTDIR)/Library/Preferences/.pac4cli/pac4cli.config
+endif
 
 install-bin:
 	install -D -m 755 main.py $(DESTDIR)$(bindir)/pac4cli
