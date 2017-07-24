@@ -61,17 +61,22 @@ ifeq ($(OS),Linux)
 	install -D -m 755 pac4cli.sh $(DESTDIR)/etc/profile.d/pac4cli-proxy.sh
 	install -D -m 644 pac4cli.config $(DESTDIR)/etc/pac4cli/pac4cli.config
 else
-	install -D -m 755 launchd/pac4cli.plist $(DESTDIR)/Library/LaunchDaemons/pac4cli.plist
-	install -D -m 644 pac4cli.config $(DESTDIR)/Library/Preferences/.pac4cli/pac4cli.config
+	install -d $(DESTDIR)/Library/LaunchDaemons
+	install -m 755 launchd/pac4cli.plist $(DESTDIR)/Library/LaunchDaemons/pac4cli.plist
+
+	install -d $(DESTDIR)/Library/Preferences/.pac4cli
+	install -m 644 pac4cli.config $(DESTDIR)/Library/Preferences/.pac4cli/pac4cli.config
 endif
 
 install-bin:
-	install -D -m 755 main.py $(DESTDIR)$(bindir)/pac4cli
+	install -d $(DESTDIR)$(bindir)
+	install -m 755 main.py $(DESTDIR)$(bindir)/pac4cli
 	@sed -i -e '1s+@PYTHON@+'$(PYTHON)'+' $(DESTDIR)$(bindir)/pac4cli
 
-	install -D -m 644 pac4cli.py $(DESTDIR)$(pythonsitedir)/pac4cli.py
-	install -D -m 644 wpad.py $(DESTDIR)$(pythonsitedir)/wpad.py
-	install -D -m 644 servicemanager.py $(DESTDIR)$(pythonsitedir)/servicemanager.py
+	install -d $(DESTDIR)$(pythonsitedir)
+	install -m 644 pac4cli.py $(DESTDIR)$(pythonsitedir)/pac4cli.py
+	install -m 644 wpad.py $(DESTDIR)$(pythonsitedir)/wpad.py
+	install -m 644 servicemanager.py $(DESTDIR)$(pythonsitedir)/servicemanager.py
 
 install: install-bin install-service
 
