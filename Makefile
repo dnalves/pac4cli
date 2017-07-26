@@ -21,6 +21,12 @@ pacparser:
 	curl -L https://github.com/pacparser/pacparser/archive/1.3.7.tar.gz | tar -xz
 	mv pacparser-1.3.7 pacparser
 
+@ifeg ($(OS),Linux)
+install-python-deps: requirements.txt pacparser
+	pip3 install -r requirements.txt
+	PYTHON=$(PYTHON) make -C pacparser/src install-pymod
+endif
+
 env: requirements.txt pacparser
 	virtualenv -p $(PYTHON) env
 	env/bin/pip install -r requirements.txt
@@ -62,7 +68,12 @@ ifeq ($(OS),Linux)
 	install -D -m 644 pac4cli.config $(DESTDIR)/etc/pac4cli/pac4cli.config
 else
 	install -d $(DESTDIR)/Library/LaunchDaemons
-	install -m 755 launchd/pac4cli.plist $(DESTDIR)/Library/LaunchDaemons/pac4cli.plist
+	install -m 644 launchd/daemon.pac4cli.plist $(DESTDIR)/Library/LaunchDaemons/pac4cli.plist
+
+	@sed -i -e 's@python@'"$(PYTHON)"'@g' $(DESTDIR)/Library/LaunchDaemons/pac4cli.plist
+
+	install -d $(DESTDIR)/Library/LaunchAgents
+	install -m 644 launchd/agent.pac4cli.plist $(DESTDIR)/Library/LaunchAgents/pac4cli.plist
 
 	install -d $(DESTDIR)/Library/Preferences/.pac4cli
 	install -m 644 pac4cli.config $(DESTDIR)/Library/Preferences/.pac4cli/pac4cli.config
@@ -78,7 +89,11 @@ install-bin:
 	install -m 644 wpad.py $(DESTDIR)$(pythonsitedir)/wpad.py
 	install -m 644 servicemanager.py $(DESTDIR)$(pythonsitedir)/servicemanager.py
 
+@ifeq ($(OS),Linux)
 install: install-bin install-service
+else
+install: install-python-deps install-bin install-service
+endif
 
 uninstall:
 	$(shell $(DESTDIR)/uninstall.sh $(DESTDIR)/)
